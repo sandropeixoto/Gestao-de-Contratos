@@ -95,6 +95,8 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
             <input type="hidden" name="ModalidadeId" value="<?php echo $contract['ModalidadeId'] ?? ''; ?>">
             <input type="hidden" name="FiscalContrato" value="<?php echo htmlspecialchars($contract['FiscalContrato'] ?? ''); ?>">
             <input type="hidden" name="EmailFiscal" value="<?php echo htmlspecialchars($contract['EmailFiscal'] ?? ''); ?>">
+            <input type="hidden" name="FiscalSubstituto" value="<?php echo htmlspecialchars($contract['FiscalSubstituto'] ?? ''); ?>">
+            <input type="hidden" name="EmailFiscalSubstituto" value="<?php echo htmlspecialchars($contract['EmailFiscalSubstituto'] ?? ''); ?>">
             <input type="hidden" name="AnoContrato" value="">
         <?php endif; ?>
 
@@ -307,6 +309,14 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                         <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">E-mail do Fiscal</span></label>
                             <input type="email" name="EmailFiscal" class="input input-bordered w-full" value="<?php echo htmlspecialchars($contract['EmailFiscal'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Fiscal Substituto</span></label>
+                            <input type="text" name="FiscalSubstituto" class="input input-bordered w-full" value="<?php echo htmlspecialchars($contract['FiscalSubstituto'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">E-mail do Substituto</span></label>
+                            <input type="email" name="EmailFiscalSubstituto" class="input input-bordered w-full" value="<?php echo htmlspecialchars($contract['EmailFiscalSubstituto'] ?? ''); ?>">
                         </div>
                     </div>
                 </section>
