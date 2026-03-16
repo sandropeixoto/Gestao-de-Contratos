@@ -1,8 +1,8 @@
 <?php
 // app-contratos/settings_action.php
-require_once __DIR__ . '/../auth_check.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth_module.php';
-require_once 'logger.php';
+require_once __DIR__ . '/logger.php';
 
 if (!CONTRATOS_ADMIN) {
     die("Acesso negado.");
