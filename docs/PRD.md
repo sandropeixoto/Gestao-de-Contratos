@@ -26,7 +26,9 @@ O sistema implementa o **Role-Based Access Control** com suporte a:
 ## 5. Requisitos Não-Funcionais (RNF)
 - **Performance:** Carregamento de dashboard inicial em menos de 1.5s.
 - **Segurança:** Todas as chaves secretas (SSO_SECRET_KEY) devem estar no `config.php` (não acessível via web).
+- **Consistência de Sessão:** O sistema deve garantir que o cookie de sessão seja compatível entre o domínio raiz e subpastas para manter o login SSO.
+- **Robustez AJAX:** Scripts de requisição assíncrona devem operar de forma silenciosa quanto à gestão de sessão, evitando a emissão de cabeçalhos redundantes que corrompam saídas JSON.
 - **Auditoria:** Gravação de log obrigatória em todas as ações POST.
 
 ---
-*Status: Finalizado em 16/03/2026.*
+*Status: Atualizado em 17/03/2026 (Orchestrated by Orion).*

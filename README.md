@@ -17,15 +17,20 @@ Sistema robusto de gestão de contratos e fornecedores, operando em arquitetura 
 - **Segurança:** HMAC-SHA256 (SSO), RBAC (Role-Based Access Control)
 - **Iconografia:** Phosphor Icons
 
-## 🔐 Arquitetura de Autenticação (SSO)
-O sistema opera como um satélite que recebe tokens assinados do **Portal GestorGov**.
-- **Mecanismo:** Token Base64 assinado com HMAC-SHA256.
-- **Segredo:** `SSO_SECRET_KEY` compartilhada entre Portal e Módulo.
-- **Controle de Acesso:** Sessão hidratada via Payload JSON (user_id, user_name, user_level).
+## 🔐 Arquitetura de Autenticação e Sessão (SSO)
+O sistema opera como um satélite que recebe tokens assinados do **Portal GestorGov** e gerencia sessões de forma centralizada.
+- **Mecanismo SSO:** Token Base64 assinado com HMAC-SHA256 validado no `auth_sso.php`.
+- **Sessão Centralizada:** Configurada no `config.php` com suporte a `SameSite=Lax` e persistência de 24h, garantindo compatibilidade entre domínios/subpastas.
+- **RBAC Robusto:** Controle de acesso baseado em níveis (Admin, Gestor, Consultor) com normalização de tipos e suporte a permissões granulares por módulo.
+
+## 🤖 Orquestração AIOX
+Este projeto utiliza o framework **AIOX (AI Orchestration Excellence)** para:
+- Manutenção assistida por agentes especializados (@dev, @architect, @qa).
+- Documentação técnica viva e sincronizada.
+- Automação de tarefas complexas e garantia de padrões de engenharia.
 
 ## 📊 Auditoria e Logs
-Todas as ações de CRUD (Create, Update, Delete) são rastreadas automaticamente via função `logSistema()` no arquivo `logger.php`, registrando:
-- Usuário, Ação, Tabela, ID do Registro, Detalhes (JSON) e IP de origem.
+Todas as ações de CRUD são rastreadas via `logger.php`, registrando Usuário, Ação, Tabela, ID e Payload JSON. Scripts AJAX são otimizados para não interferir na integridade da sessão global.
 
 ## 🚀 Instalação Rápida
 
