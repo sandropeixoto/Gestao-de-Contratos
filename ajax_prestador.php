@@ -13,19 +13,39 @@ if (!CONTRATOS_LEITOR) {
     exit;
 }
 
-$doc = $_GET['doc'] ?? '';
-$doc = preg_replace('/[^0-9]/', '', $doc); // Remove máscara
+$term = $_GET['doc'] ?? '';
+$doc = preg_replace('/[^0-9]/', '', $term); // Remove máscara
 
-if (empty($doc)) {
-    echo json_encode(['success' => false, 'error' => 'Documento não informado']);
+if (empty($term)) {
+    echo json_encode(['success' => false, 'error' => 'Termo não informado']);
     exit;
 }
 
 try {
-    $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador WHERE CNPJ = ? OR CNPJ = ? LIMIT 1");
-    // Tenta com e sem máscara (embora o ideal seja salvar limpo, vamos garantir)
-    $stmt->execute([$doc, $_GET['doc']]);
+    // Se tiver mais números do que letras, prioriza busca por CNPJ
+    if (strlen($doc) >= 5) {
+        $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador 
+                               WHERE CNPJ = ? OR CNPJ = ? 
+                               OR CNPJ LIKE ? 
+                               LIMIT 1");
+        $stmt->execute([$doc, $term, "%$doc%"]);
+    } else {
+        // Busca prioritária por Nome
+        $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador 
+                               WHERE Nome LIKE ? 
+                               OR CNPJ = ? 
+                               LIMIT 1");
+        $stmt->execute(["%$term%", $term]);
+    }
+    
     $prestador = $stmt->fetch();
+
+    // Se ainda não encontrou e tem algum termo, tenta uma busca geral pelo nome
+    if (!$prestador && strlen($term) >= 3) {
+        $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador WHERE Nome LIKE ? LIMIT 1");
+        $stmt->execute(["%$term%"]);
+        $prestador = $stmt->fetch();
+    }
 
     if ($prestador) {
         echo json_encode(['success' => true, 'data' => $prestador]);

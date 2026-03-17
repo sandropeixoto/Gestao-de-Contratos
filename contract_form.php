@@ -433,11 +433,13 @@ function buscarPrestador(doc) {
                 nome.innerText = ''; 
                 inputId.value = ''; 
                 info.classList.add('hidden');
-                // Só mostra "não encontrado" se o documento parecer completo (ex: 11 ou 14 dígitos)
-                const cleanDoc = doc.replace(/\D/g, '');
-                if (cleanDoc.length >= 11) {
+                
+                // Exibe erro apenas se houver uma tentativa razoável de digitação e não for encontrado
+                if (doc.length >= 3) {
                     notFound.classList.remove('hidden');
                     notFound.classList.add('flex');
+                } else {
+                    notFound.classList.add('hidden');
                 }
             }
         })
