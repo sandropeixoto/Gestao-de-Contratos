@@ -255,7 +255,7 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             </label>
                             <div class="flex gap-2">
                                 <div class="relative flex-1">
-                                    <input type="text" id="prestador_doc" class="input input-bordered w-full pr-10" placeholder="Digite o documento para buscar..." value="<?php echo htmlspecialchars($contract['PrestadorDoc'] ?? ''); ?>" onblur="buscarPrestador(this.value)">
+                                    <input type="text" id="prestador_doc" class="input input-bordered w-full pr-10" placeholder="Digite o documento para buscar..." value="<?php echo htmlspecialchars($contract['PrestadorDoc'] ?? ''); ?>" oninput="buscarPrestador(this.value)">
                                     <div id="doc_loading" class="absolute right-3 top-3 hidden"><span class="loading loading-spinner loading-sm opacity-50"></span></div>
                                 </div>
                                 <input type="hidden" name="PrestadorId" id="PrestadorId" required value="<?php echo $contract['PrestadorId'] ?? ''; ?>">
@@ -349,6 +349,10 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             <input type="text" name="NProcesso" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NProcesso'] ?? ''); ?>">
                         </div>
                         <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Fundamentação Legal</span></label>
+                            <input type="text" name="FundamentacaoLegal" class="input input-bordered" value="<?php echo htmlspecialchars($contract['FundamentacaoLegal'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">Modalidade</span></label>
                             <select name="ModalidadeId" class="select select-bordered w-full">
                                 <option value="">Selecione...</option>
@@ -381,11 +385,22 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
 
 <script>
 function buscarPrestador(doc) {
-    if (doc.length < 3) return;
     const loading = document.getElementById('doc_loading');
     const info = document.getElementById('prestador_info');
     const nome = document.getElementById('prestador_nome');
     const inputId = document.getElementById('PrestadorId');
+
+    // Remove caracteres não numéricos para contagem
+    const cleanDoc = doc.replace(/\D/g, '');
+    
+    // Só busca se tiver pelo menos 11 (CPF) ou 14 (CNPJ) caracteres ou se for busca manual por texto curto
+    if (cleanDoc.length < 11 && doc.length < 11) {
+        nome.innerText = ''; 
+        inputId.value = ''; 
+        info.classList.add('hidden');
+        return;
+    }
+
     loading.classList.remove('hidden');
     fetch('ajax_prestador.php?doc=' + encodeURIComponent(doc))
         .then(response => response.json())
@@ -397,11 +412,15 @@ function buscarPrestador(doc) {
                 info.classList.remove('hidden');
                 info.classList.add('flex');
             } else {
-                nome.innerText = ''; inputId.value = ''; info.classList.add('hidden');
-                alert('Fornecedor não encontrado.');
+                nome.innerText = ''; 
+                inputId.value = ''; 
+                info.classList.add('hidden');
             }
         })
-        .catch(error => { loading.classList.add('hidden'); console.error('Erro:', error); });
+        .catch(error => { 
+            loading.classList.add('hidden'); 
+            console.error('Erro:', error); 
+        });
 }
 </script>
 
