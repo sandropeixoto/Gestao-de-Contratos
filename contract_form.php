@@ -267,6 +267,10 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                                     <p id="prestador_nome" class="font-bold"><?php echo htmlspecialchars($contract['PrestadorNome'] ?? ''); ?></p>
                                 </div>
                             </div>
+                            <div id="prestador_not_found" class="mt-2 p-3 bg-error/10 rounded-lg border border-error/20 hidden items-center gap-3 text-error">
+                                <i class="ph ph-warning-circle text-xl"></i>
+                                <span class="text-sm font-bold">Fornecedor não cadastrado no sistema.</span>
+                            </div>
                         </div>
                         <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">Valor Mensal (R$)</span></label>
@@ -345,6 +349,18 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             </select>
                         </div>
                         <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Programa de Trabalho</span></label>
+                            <input type="text" name="ProgramaTrabalho" class="input input-bordered" value="<?php echo htmlspecialchars($contract['ProgramaTrabalho'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Funcional Programática</span></label>
+                            <input type="text" name="FuncionalProgramatica" class="input input-bordered" value="<?php echo htmlspecialchars($contract['FuncionalProgramatica'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Natureza da Despesa</span></label>
+                            <input type="text" name="NaturezaDespesa" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NaturezaDespesa'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">Número do Processo</span></label>
                             <input type="text" name="NProcesso" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NProcesso'] ?? ''); ?>">
                         </div>
@@ -387,21 +403,22 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
 function buscarPrestador(doc) {
     const loading = document.getElementById('doc_loading');
     const info = document.getElementById('prestador_info');
+    const notFound = document.getElementById('prestador_not_found');
     const nome = document.getElementById('prestador_nome');
     const inputId = document.getElementById('PrestadorId');
 
-    // Remove caracteres não numéricos para contagem
-    const cleanDoc = doc.replace(/\D/g, '');
-    
-    // Só busca se tiver pelo menos 11 (CPF) ou 14 (CNPJ) caracteres ou se for busca manual por texto curto
-    if (cleanDoc.length < 11 && doc.length < 11) {
+    // Só busca se tiver pelo menos 3 caracteres (permite busca parcial enquanto digita)
+    if (doc.length < 3) {
         nome.innerText = ''; 
         inputId.value = ''; 
         info.classList.add('hidden');
+        notFound.classList.add('hidden');
         return;
     }
 
     loading.classList.remove('hidden');
+    notFound.classList.add('hidden');
+
     fetch('ajax_prestador.php?doc=' + encodeURIComponent(doc))
         .then(response => response.json())
         .then(data => {
@@ -411,10 +428,17 @@ function buscarPrestador(doc) {
                 inputId.value = data.data.Id;
                 info.classList.remove('hidden');
                 info.classList.add('flex');
+                notFound.classList.add('hidden');
             } else {
                 nome.innerText = ''; 
                 inputId.value = ''; 
                 info.classList.add('hidden');
+                // Só mostra "não encontrado" se o documento parecer completo (ex: 11 ou 14 dígitos)
+                const cleanDoc = doc.replace(/\D/g, '');
+                if (cleanDoc.length >= 11) {
+                    notFound.classList.remove('hidden');
+                    notFound.classList.add('flex');
+                }
             }
         })
         .catch(error => { 
