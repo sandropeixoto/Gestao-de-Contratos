@@ -201,6 +201,35 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
 
             <!-- SEÇÃO CONTRATO ORIGINAL (Apenas se NÃO for TAC) -->
             <?php else: ?>
+                <section class="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                    <h3 class="text-lg font-bold border-b border-primary/20 pb-2 mb-4 flex items-center gap-2 text-primary">
+                        <i class="ph ph-intersect text-primary"></i> Integração PNCP
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Id Contratação PNCP</span></label>
+                            <div class="join w-full">
+                                <input type="text" name="PncpIdContratacao" id="PncpIdContratacao" class="input input-bordered join-item w-full" value="<?php echo htmlspecialchars($contract['PncpIdContratacao'] ?? ''); ?>" placeholder="00000000000000-1-000000/0000">
+                                <button type="button" onclick="fetchPncp('compra', 'PncpIdContratacao')" class="btn btn-primary join-item px-3" title="Consultar PNCP">
+                                    <i class="ph ph-magnifying-glass"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Id Contrato PNCP</span></label>
+                            <div class="join w-full">
+                                <input type="text" name="PncpIdContrato" id="PncpIdContrato" class="input input-bordered join-item w-full" value="<?php echo htmlspecialchars($contract['PncpIdContrato'] ?? ''); ?>" placeholder="00000000000000-2-000000/0000">
+                                <button type="button" onclick="fetchPncp('contrato', 'PncpIdContrato')" class="btn btn-primary join-item px-3" title="Consultar PNCP">
+                                    <i class="ph ph-magnifying-glass"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pncp-loading" class="hidden mt-2 text-sm text-primary flex items-center gap-2">
+                        <span class="loading loading-spinner loading-xs"></span> Consultando PNCP...
+                    </div>
+                </section>
+
                 <section>
                     <h3 class="text-lg font-bold border-b pb-2 mb-4 flex items-center gap-2">
                         <i class="ph ph-info text-primary"></i> Informações Básicas
@@ -448,6 +477,55 @@ function buscarPrestador(doc) {
             console.error('Erro:', error); 
         });
 }
+    function fetchPncp(type, inputId) {
+        const id = document.getElementById(inputId).value;
+        if (!id) {
+            alert('Por favor, insira o ID do PNCP antes de consultar.');
+            return;
+        }
+
+        const loading = document.getElementById('pncp-loading');
+        loading.classList.remove('hidden');
+
+        fetch(`ajax_pncp_fetch.php?type=${type}&id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                if (data.error) {
+                    alert(data.error);
+                } else if (data.success && data.mapped) {
+                    const mapped = data.mapped;
+                    let message = `Dados encontrados no PNCP!\n\n`;
+                    message += `Objeto: ${mapped.Objeto.substring(0, 100)}...\n`;
+                    message += `Valor: R$ ${parseFloat(mapped.ValorGlobalContrato).toLocaleString('pt-BR', {minimumFractionDigits: 2})}\n\n`;
+                    message += `Deseja preencher automaticamente o formulário com estes dados?`;
+
+                    if (confirm(message)) {
+                        if (mapped.Objeto) document.querySelector('[name="Objeto"]').value = mapped.Objeto;
+                        if (mapped.DataAssinatura && document.querySelector('[name="DataAssinatura"]')) document.querySelector('[name="DataAssinatura"]').value = mapped.DataAssinatura;
+                        if (mapped.VigenciaInicio && document.querySelector('[name="VigenciaInicio"]')) document.querySelector('[name="VigenciaInicio"]').value = mapped.VigenciaInicio;
+                        if (mapped.VigenciaFim && document.querySelector('[name="VigenciaFim"]')) document.querySelector('[name="VigenciaFim"]').value = mapped.VigenciaFim;
+                        if (mapped.ValorGlobalContrato && document.querySelector('[name="ValorGlobalContrato"]')) document.querySelector('[name="ValorGlobalContrato"]').value = mapped.ValorGlobalContrato;
+                        if (mapped.NProcesso && document.querySelector('[name="NProcesso"]')) document.querySelector('[name="NProcesso"]').value = mapped.NProcesso;
+                        
+                        // Opcional: Busca o prestador se CNPJ estiver disponível e houver lógica para isso
+                        if (mapped.FornecedorCNPJ) {
+                            const prestadorInput = document.getElementById('PrestadorDoc');
+                            if (prestadorInput) {
+                                prestadorInput.value = mapped.FornecedorCNPJ;
+                                // Dispara a busca que já existe no sistema
+                                buscarPrestador(mapped.FornecedorCNPJ);
+                            }
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                loading.classList.add('hidden');
+                console.error('Erro na consulta PNCP:', error);
+                alert('Ocorreu um erro ao consultar o PNCP.');
+            });
+    }
 </script>
 
 <?php require_once 'footer.php'; ?>

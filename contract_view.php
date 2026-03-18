@@ -200,6 +200,38 @@ $error_map = [
                     <p class="text-base-content/80 leading-relaxed italic">
                         "<?php echo nl2br(htmlspecialchars($contract['Objeto'] ?? '')); ?>"
                     </p>
+
+                    <!-- Links PNCP -->
+                    <?php if (!empty($contract['PncpIdContratacao']) || !empty($contract['PncpIdContrato'])): ?>
+                        <div class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-base-200">
+                            <span class="text-xs font-bold uppercase opacity-40 w-full mb-1">Rastreabilidade PNCP</span>
+                            <?php if ($contract['PncpIdContratacao']): 
+                                $p = explode('-', str_replace('/', '-', $contract['PncpIdContratacao']));
+                                // 0:cnpj, 1:tipo, 2:seq, 3:ano
+                                $url_contratacao = "https://pncp.gov.br/app/editais/{$p[0]}/{$p[3]}/{$p[2]}";
+                            ?>
+                                <a href="<?php echo $url_contratacao; ?>" target="_blank" class="badge badge-outline badge-primary gap-2 hover:bg-primary hover:text-white transition-all py-3">
+                                    <i class="ph ph-arrow-square-out"></i> Compra: <?php echo $contract['PncpIdContratacao']; ?>
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if ($contract['PncpIdContrato']): 
+                                $p = explode('-', str_replace('/', '-', $contract['PncpIdContrato']));
+                                // 0:cnpj, 1:tipo, 2:seq, 3:ano
+                                $url_contrato = "https://pncp.gov.br/app/contratos/{$p[0]}/{$p[3]}/{$p[2]}";
+                            ?>
+                                <a href="<?php echo $url_contrato; ?>" target="_blank" class="badge badge-outline badge-secondary gap-2 hover:bg-secondary hover:text-white transition-all py-3">
+                                    <i class="ph ph-arrow-square-out"></i> Contrato: <?php echo $contract['PncpIdContrato']; ?>
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if ($contract['PncpLastSync']): ?>
+                                <span class="text-[10px] opacity-40 flex items-center gap-1 self-center ml-2">
+                                    <i class="ph ph-clock"></i> Sincronizado em: <?php echo date('d/m/Y H:i', strtotime($contract['PncpLastSync'])); ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                     
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
                         <div class="stat p-0">

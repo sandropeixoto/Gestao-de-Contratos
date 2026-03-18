@@ -56,7 +56,10 @@ try {
             'NaturezaDespesa' => $_POST['NaturezaDespesa'] ?? null,
             'FonteRecursos' => $_POST['FonteRecursos'] ?? null,
             'NumeroDiarioOficialContrato' => $_POST['NumeroDiarioOficialContrato'] ?? null,
-            'Observacao' => $_POST['Observacao'] ?? null
+            'Observacao' => $_POST['Observacao'] ?? null,
+            'PncpIdContratacao' => $_POST['PncpIdContratacao'] ?? null,
+            'PncpIdContrato' => $_POST['PncpIdContrato'] ?? null,
+            'PncpLastSync' => isset($_POST['PncpIdContratacao']) || isset($_POST['PncpIdContrato']) ? date('Y-m-d H:i:s') : null
         ];
 
         $contrato_final_id = $id;
