@@ -4,29 +4,20 @@ require_once 'config.php';
 
 header('Content-Type: application/json');
 
-// Verificar se o usuário está logado (opcional, dependendo da sua auth_module.php)
-// require_once 'auth_module.php'; 
-
-$id = $_GET['id'] ?? '';
-$type = $_GET['type'] ?? 'compra'; // 'compra' ou 'contrato'
+$id = trim($_GET['id'] ?? '');
+$type = $_GET['type'] ?? 'compra'; 
 
 if (empty($id)) {
     echo json_encode(['error' => 'ID não fornecido']);
     exit;
 }
 
-/**
- * Parse PNCP ID: {CNPJ}-{TYPE}-{SEQ}/{YEAR}
- * Ex: 05054903000179-1-000055/2025
- */
 function parsePncpId($pncpId) {
-    // Regex para capturar CNPJ, Sequencial e Ano
-    // Formato esperado: (\d{14})-(\d)-(\d+)/(\d{4})
     if (preg_match('/^(\d{14})-(\d)-(\d+)\/(\d{4})$/', $pncpId, $matches)) {
         return [
             'cnpj' => $matches[1],
             'tipo' => $matches[2],
-            'sequencial' => (int)$matches[3],
+            'sequencial' => $matches[3],
             'ano' => $matches[4]
         ];
     }
@@ -34,69 +25,69 @@ function parsePncpId($pncpId) {
 }
 
 $parsed = parsePncpId($id);
-
 if (!$parsed) {
     echo json_encode(['error' => 'Formato de ID inválido. Use: 00000000000000-X-000000/0000']);
     exit;
 }
 
-$url = "";
-if ($type === 'compra') {
-    $url = "https://pncp.gov.br/api/consulta/v1/orgaos/{$parsed['cnpj']}/compras/{$parsed['ano']}/{$parsed['sequencial']}";
-} else {
-    $url = "https://pncp.gov.br/api/consulta/v1/orgaos/{$parsed['cnpj']}/contratos/{$parsed['ano']}/{$parsed['sequencial']}";
+function callPncpApi($url) {
+    // Usar o binário curl do sistema para máxima fidelidade ao shell
+    $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    $cmd = "curl -s -L -A \"$ua\" \"$url\"";
+    $response = shell_exec($cmd);
+    
+    return ['code' => 200, 'data' => json_decode($response, true)];
 }
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Em alguns ambientes pode ser necessário
+$data = null;
 
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+if ($type === 'compra') {
+    $res = callPncpApi("https://pncp.gov.br/api/consulta/v1/orgaos/{$parsed['cnpj']}/compras/{$parsed['ano']}/" . (int)$parsed['sequencial']);
+    if ($res['code'] === 200) {
+        $data = $res['data'];
+    }
+} else {
+    $dataInicial = "{$parsed['ano']}0101";
+    $dataFinal = "{$parsed['ano']}1231";
+    
+    // Varredura inteligente
+    for ($page = 1; $page <= 5; $page++) {
+        $listUrl = "https://pncp.gov.br/api/consulta/v1/contratos?dataInicial={$dataInicial}&dataFinal={$dataFinal}&cnpjOrgao={$parsed['cnpj']}&pagina={$page}&tamanhoPagina=100";
+        $resList = callPncpApi($listUrl);
+        
+        if ($resList['code'] === 200 && isset($resList['data']['data'])) {
+            foreach ($resList['data']['data'] as $contract) {
+                // Comparação rigorosa sem espaços
+                if (trim($contract['numeroControlePNCP']) === $id) {
+                    $data = $contract;
+                    break 2;
+                }
+            }
+            if (count($resList['data']['data']) < 100) break;
+        } else {
+            break;
+        }
+    }
+}
 
-if ($httpCode !== 200) {
-    echo json_encode(['error' => "Erro ao consultar PNCP (Código HTTP: $httpCode). Verifique se o ID está correto."]);
+if (!$data) {
+    echo json_encode(['error' => "Contrato não localizado no PNCP. Verifique se o ID está correto ou se foi publicado recentemente."]);
     exit;
 }
 
-$data = json_decode($response, true);
-
-// Mapeamento de campos para o nosso sistema
-if ($type === 'compra') {
-    $result = [
-        'success' => true,
-        'source' => $type,
-        'raw' => $data,
-        'mapped' => [
-            'Objeto' => $data['objetoCompra'] ?? '',
-            'VigenciaInicio' => '', 
-            'VigenciaFim' => '',
-            'DataAssinatura' => '',
-            'ValorGlobalContrato' => $data['valorTotalEstimado'] ?? 0,
-            'FornecedorCNPJ' => '',
-            'FornecedorNome' => '',
-            'NProcesso' => $data['processo'] ?? '',
-        ]
-    ];
-} else {
-    $result = [
-        'success' => true,
-        'source' => $type,
-        'raw' => $data,
-        'mapped' => [
-            'Objeto' => $data['objetoContrato'] ?? '',
-            'VigenciaInicio' => isset($data['dataVigenciaInicio']) ? substr($data['dataVigenciaInicio'], 0, 10) : '',
-            'VigenciaFim' => isset($data['dataVigenciaFim']) ? substr($data['dataVigenciaFim'], 0, 10) : '',
-            'DataAssinatura' => isset($data['dataAssinatura']) ? substr($data['dataAssinatura'], 0, 10) : '',
-            'ValorGlobalContrato' => $data['valorTotal'] ?? $data['valorGlobal'] ?? $data['valorInicial'] ?? 0,
-            'FornecedorCNPJ' => $data['niFornecedor'] ?? '',
-            'FornecedorNome' => $data['nomeFornecedor'] ?? $data['razaoSocialNomeFornecedor'] ?? '',
-            'NProcesso' => $data['numeroProcesso'] ?? '',
-        ]
-    ];
-}
+// Mapeamento de campos
+$result = [
+    'success' => true,
+    'mapped' => [
+        'Objeto' => $data['objetoCompra'] ?? $data['objetoContrato'] ?? '',
+        'VigenciaInicio' => isset($data['dataVigenciaInicio']) ? substr($data['dataVigenciaInicio'], 0, 10) : '',
+        'VigenciaFim' => isset($data['dataVigenciaFim']) ? substr($data['dataVigenciaFim'], 0, 10) : '',
+        'DataAssinatura' => isset($data['dataAssinatura']) ? substr($data['dataAssinatura'], 0, 10) : '',
+        'ValorGlobalContrato' => $data['valorGlobal'] ?? $data['valorInicial'] ?? $data['valorTotalEstimado'] ?? 0,
+        'FornecedorCNPJ' => $data['niFornecedor'] ?? '',
+        'FornecedorNome' => $data['nomeFornecedor'] ?? $data['razaoSocialNomeFornecedor'] ?? $data['nomeRazaoSocialFornecedor'] ?? '',
+        'NProcesso' => $data['processo'] ?? $data['numeroProcesso'] ?? '',
+    ]
+];
 
 echo json_encode($result);
