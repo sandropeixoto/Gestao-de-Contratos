@@ -528,7 +528,7 @@ function preencherFormulario(mapped) {
 
     // Busca prestador se CNPJ disponível
     if (mapped.FornecedorCNPJ) {
-        const prestadorInput = document.getElementById('PrestadorDoc');
+        const prestadorInput = document.getElementById('prestador_doc');
         if (prestadorInput) {
             prestadorInput.value = mapped.FornecedorCNPJ;
             buscarPrestador(mapped.FornecedorCNPJ);
