@@ -32,32 +32,16 @@ if (!$parsed) {
 
 function callPncpApi($url) {
     $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-
-    // Usa o binário curl do sistema para compatibilidade com TLS dos servidores gov.
-    // Segurança: escapeshellarg() previne command injection na URL.
-    $cmd = 'curl -s -L --max-time 20 -A ' . escapeshellarg($ua) . ' ' . escapeshellarg($url);
+    $cmd = "curl -s -L -A \"$ua\" \"$url\"";
     $response = shell_exec($cmd);
 
-    if ($response === null || $response === false) {
-        return ['code' => 0, 'data' => null, 'error' => 'Falha na comunicação com o PNCP'];
-    }
-
-    $data = json_decode($response, true);
-    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
-        return ['code' => 0, 'data' => null, 'error' => 'Resposta inválida do PNCP (não é JSON)'];
-    }
-
-    return ['code' => 200, 'data' => $data];
+    return ['code' => 200, 'data' => json_decode($response, true)];
 }
 
 $data = null;
 
 if ($type === 'compra') {
     $res = callPncpApi("https://pncp.gov.br/api/consulta/v1/orgaos/{$parsed['cnpj']}/compras/{$parsed['ano']}/" . (int)$parsed['sequencial']);
-    if ($res['code'] === 0) {
-        echo json_encode(['error' => 'Falha de conectividade com o PNCP: ' . ($res['error'] ?? 'timeout')]);
-        exit;
-    }
     if ($res['code'] === 200) {
         $data = $res['data'];
     }
@@ -69,11 +53,6 @@ if ($type === 'compra') {
     for ($page = 1; $page <= 5; $page++) {
         $listUrl = "https://pncp.gov.br/api/consulta/v1/contratos?dataInicial={$dataInicial}&dataFinal={$dataFinal}&cnpjOrgao={$parsed['cnpj']}&pagina={$page}&tamanhoPagina=100";
         $resList = callPncpApi($listUrl);
-
-        if ($resList['code'] === 0) {
-            echo json_encode(['error' => 'Falha de conectividade com o PNCP: ' . ($resList['error'] ?? 'timeout')]);
-            exit;
-        }
 
         if ($resList['code'] === 200 && isset($resList['data']['data'])) {
             foreach ($resList['data']['data'] as $contract) {
