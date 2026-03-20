@@ -22,10 +22,12 @@ if ($action === 'delete' && !CONTRATOS_GESTOR) {
 
 try {
     if ($action === 'create' || $action === 'update') {
+        $cnpj_limpo = preg_replace('/[^0-9]/', '', $_POST['CNPJ']);
+
         $data = [
             'Nome' => $_POST['Nome'],
             'Tipo' => $_POST['Tipo'],
-            'CNPJ' => $_POST['CNPJ'],
+            'CNPJ' => $cnpj_limpo,
             'CEP' => $_POST['CEP'],
             'Logradouro' => $_POST['Logradouro'],
             'Numero' => $_POST['Numero'],

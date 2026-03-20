@@ -22,10 +22,10 @@ try {
     // Se tiver mais números do que letras, prioriza busca por CNPJ
     if (strlen($doc) >= 5) {
         $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador 
-                               WHERE CNPJ = ? OR CNPJ = ? 
+                               WHERE CNPJ = ? 
                                OR CNPJ LIKE ? 
                                LIMIT 1");
-        $stmt->execute([$doc, $term, "%$doc%"]);
+        $stmt->execute([$doc, "%$doc%"]);
     } else {
         // Busca prioritária por Nome
         $stmt = $pdo->prepare("SELECT Id, Nome FROM Prestador 
