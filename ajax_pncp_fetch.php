@@ -42,15 +42,33 @@ function callPncpApi($url) {
         CURLOPT_TIMEOUT        => 20,
         CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_SSL_VERIFYPEER => true,
+        // Força HTTP/1.1 — evita travar na negociação HTTP/2 com servidores gov
+        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+        // Habilita decompressão automática (gzip/deflate)
+        CURLOPT_ENCODING       => '',
+        CURLOPT_HTTPHEADER     => [
+            'Accept: application/json, */*',
+            'Accept-Language: pt-BR,pt;q=0.9',
+            'Connection: keep-alive',
+        ],
     ]);
 
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_errno = curl_errno($ch);
     $curl_error = curl_error($ch);
     curl_close($ch);
 
-    if ($curl_error || $response === false) {
-        return ['code' => 0, 'data' => null, 'error' => $curl_error ?: 'Falha na requisição'];
+    if ($response === false || $curl_errno) {
+        // Traduz os erros mais comuns para facilitar diagnóstico
+        $error_map = [
+            CURLE_OPERATION_TIMEDOUT  => 'Timeout: o servidor PNCP não respondeu no tempo limite',
+            CURLE_COULDNT_CONNECT     => 'Não foi possível conectar ao servidor PNCP',
+            CURLE_SSL_CONNECT_ERROR   => 'Erro na conexão SSL com o PNCP',
+            CURLE_SSL_CACERT          => 'Falha na validação do certificado SSL do PNCP',
+        ];
+        $message = $error_map[$curl_errno] ?? "cURL erro {$curl_errno}: {$curl_error}";
+        return ['code' => 0, 'data' => null, 'error' => $message];
     }
 
     return ['code' => $http_code, 'data' => json_decode($response, true)];
