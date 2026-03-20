@@ -540,7 +540,7 @@ function preencherFormulario(mapped) {
             if (value !== undefined && value !== null) {
                 const mask = getMaskByElement(input);
                 if (mask) {
-                    mask.value = value.toString();
+                    mask.typedValue = parseFloat(value) || 0;
                 } else {
                     input.value = value;
                 }
@@ -580,9 +580,11 @@ const maskOptions = {
 
 const masks = [];
 document.querySelectorAll('.money-mask').forEach(el => {
+    // Salva o valor raw ANTES do IMask processar o campo
+    const rawValue = parseFloat(el.value) || 0;
+    el.value = '';
     const mask = IMask(el, maskOptions);
-    // Se já tem valor vindo do banco, força a formatação
-    if (el.value) mask.typedValue = parseFloat(el.value);
+    if (rawValue) mask.typedValue = rawValue;
     masks.push(mask);
 });
 
@@ -602,25 +604,23 @@ function calculateContractValues(source) {
     const mMensal = getMaskByElement(mensalInputs[0]);
     const mGlobal = getMaskByElement(globalInputs[0]);
 
-    const mensal = parseFloat(mMensal ? mMensal.unmaskedValue : (mensalInputs[0].value || 0));
+    const mensal = mMensal ? mMensal.typedValue : parseFloat(mensalInputs[0].value || 0);
     const parcelas = parseInt(parcelasInputs[0].value || 0);
-    const global = parseFloat(mGlobal ? mGlobal.unmaskedValue : (globalInputs[0].value || 0));
+    const global = mGlobal ? mGlobal.typedValue : parseFloat(globalInputs[0].value || 0);
 
     if (source === 'mensal' || source === 'parcelas') {
         if (mensal > 0 && parcelas > 0) {
-            const novoGlobal = (mensal * parcelas).toFixed(2);
             globalInputs.forEach(i => {
                 const m = getMaskByElement(i);
-                if (m) m.value = novoGlobal;
-                else i.value = novoGlobal;
+                if (m) m.typedValue = parseFloat((mensal * parcelas).toFixed(2));
+                else i.value = (mensal * parcelas).toFixed(2);
             });
         }
     } else if (source === 'global' && parcelas > 0) {
-        const novoMensal = (global / parcelas).toFixed(2);
         mensalInputs.forEach(i => {
             const m = getMaskByElement(i);
-            if (m) m.value = novoMensal;
-            else i.value = novoMensal;
+            if (m) m.typedValue = parseFloat((global / parcelas).toFixed(2));
+            else i.value = (global / parcelas).toFixed(2);
         });
     }
 }
