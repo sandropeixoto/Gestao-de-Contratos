@@ -33,45 +33,21 @@ if (!$parsed) {
 function callPncpApi($url) {
     $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-    $ch = curl_init();
-    curl_setopt_array($ch, [
-        CURLOPT_URL            => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT      => $ua,
-        CURLOPT_TIMEOUT        => 20,
-        CURLOPT_CONNECTTIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => true,
-        // Força HTTP/1.1 — evita travar na negociação HTTP/2 com servidores gov
-        CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-        // Habilita decompressão automática (gzip/deflate)
-        CURLOPT_ENCODING       => '',
-        CURLOPT_HTTPHEADER     => [
-            'Accept: application/json, */*',
-            'Accept-Language: pt-BR,pt;q=0.9',
-            'Connection: keep-alive',
-        ],
-    ]);
+    // Usa o binário curl do sistema para compatibilidade com TLS dos servidores gov.
+    // Segurança: escapeshellarg() previne command injection na URL.
+    $cmd = 'curl -s -L --max-time 20 -A ' . escapeshellarg($ua) . ' ' . escapeshellarg($url);
+    $response = shell_exec($cmd);
 
-    $response = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_errno = curl_errno($ch);
-    $curl_error = curl_error($ch);
-    curl_close($ch);
-
-    if ($response === false || $curl_errno) {
-        // Traduz os erros mais comuns para facilitar diagnóstico
-        $error_map = [
-            CURLE_OPERATION_TIMEDOUT  => 'Timeout: o servidor PNCP não respondeu no tempo limite',
-            CURLE_COULDNT_CONNECT     => 'Não foi possível conectar ao servidor PNCP',
-            CURLE_SSL_CONNECT_ERROR   => 'Erro na conexão SSL com o PNCP',
-            CURLE_SSL_CACERT          => 'Falha na validação do certificado SSL do PNCP',
-        ];
-        $message = $error_map[$curl_errno] ?? "cURL erro {$curl_errno}: {$curl_error}";
-        return ['code' => 0, 'data' => null, 'error' => $message];
+    if ($response === null || $response === false) {
+        return ['code' => 0, 'data' => null, 'error' => 'Falha na comunicação com o PNCP'];
     }
 
-    return ['code' => $http_code, 'data' => json_decode($response, true)];
+    $data = json_decode($response, true);
+    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+        return ['code' => 0, 'data' => null, 'error' => 'Resposta inválida do PNCP (não é JSON)'];
+    }
+
+    return ['code' => 200, 'data' => $data];
 }
 
 $data = null;
