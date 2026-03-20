@@ -135,20 +135,20 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                     <h3 class="text-lg font-bold border-b pb-2 mb-4 flex items-center gap-2">
                         <i class="ph ph-calendar text-primary"></i> Vigência e Valores
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="form-control">
+                    <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
+                        <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Vigência Início</span></label>
                             <input type="date" name="VigenciaInicio" required class="input input-bordered" value="<?php echo $contract['VigenciaInicio'] ?? ''; ?>">
                         </div>
-                        <div class="form-control">
+                        <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Vigência Fim</span></label>
                             <input type="date" name="VigenciaFim" required class="input input-bordered" value="<?php echo $contract['VigenciaFim'] ?? ''; ?>">
                         </div>
-                        <div class="form-control">
+                        <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Data Assinatura</span></label>
                             <input type="date" name="DataAssinatura" required class="input input-bordered" value="<?php echo $contract['DataAssinatura'] ?? ''; ?>">
                         </div>
-                        <div class="form-control">
+                        <div class="form-control md:col-span-4">
                             <label class="label"><span class="label-text font-semibold">Diário Oficial TAC</span></label>
                             <input type="text" name="NumeroDiarioOficialContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroDiarioOficialContrato'] ?? ''); ?>">
                         </div>
@@ -283,8 +283,8 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                     <h3 class="text-lg font-bold border-b pb-2 mb-4 flex items-center gap-2">
                         <i class="ph ph-briefcase text-primary"></i> Fornecedor e Valores
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-control md:col-span-2">
+                    <div class="grid grid-cols-1 md:grid-cols-10 gap-6">
+                        <div class="form-control md:col-span-10">
                             <label class="label">
                                 <span class="label-text font-semibold">Documento do Fornecedor (CPF/CNPJ)</span>
                                 <a href="prestadores.php" target="_blank" class="label-text-alt link link-primary flex items-center gap-1">
