@@ -78,6 +78,9 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
         </a>
     </div>
 
+    <!-- IMask para máscaras monetárias -->
+    <script src="https://unpkg.com/imask"></script>
+
     <form action="contracts_action.php" method="POST" class="card bg-base-100 shadow-xl border border-base-200">
         <input type="hidden" name="action" value="<?php echo $id ? 'update' : 'create'; ?>">
         <input type="hidden" name="PaiId" value="<?php echo $parentId; ?>">
@@ -149,17 +152,24 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             <label class="label"><span class="label-text font-semibold">Diário Oficial TAC</span></label>
                             <input type="text" name="NumeroDiarioOficialContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroDiarioOficialContrato'] ?? ''); ?>">
                         </div>
-                        <div class="form-control md:col-span-1">
+                        <!-- Linha de Valores: 40% / 20% / 40% -->
+                        <div class="form-control md:col-span-4">
                             <label class="label"><span class="label-text font-semibold">Valor Mensal Contrato</span></label>
-                            <input type="number" step="0.01" name="ValorMensalContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>">
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-gray-400 font-medium">R$</span>
+                                <input type="text" name="ValorMensalContrato" class="input input-bordered w-full pl-12 money-mask" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>">
+                            </div>
                         </div>
-                        <div class="form-control md:col-span-1">
+                        <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Nº Parcelas</span></label>
                             <input type="number" name="NumeroParcelas" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroParcelas'] ?? ''); ?>">
                         </div>
-                        <div class="form-control md:col-span-2">
+                        <div class="form-control md:col-span-4">
                             <label class="label"><span class="label-text font-semibold">Valor Global Contrato</span></label>
-                            <input type="number" step="0.01" name="ValorGlobalContrato" required class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorGlobalContrato'] ?? ''); ?>">
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-gray-400 font-medium">R$</span>
+                                <input type="text" name="ValorGlobalContrato" required class="input input-bordered w-full pl-12 money-mask" value="<?php echo htmlspecialchars($contract['ValorGlobalContrato'] ?? ''); ?>">
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -300,17 +310,24 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                                 <span class="text-sm font-bold">Fornecedor não cadastrado no sistema.</span>
                             </div>
                         </div>
-                        <div class="form-control">
+                        <!-- Linha de Valores: 40% / 20% / 40% -->
+                        <div class="form-control md:col-span-4">
                             <label class="label"><span class="label-text font-semibold">Valor Mensal (R$)</span></label>
-                            <input type="number" step="0.01" name="ValorMensalContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>" placeholder="0.00">
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-gray-400 font-medium">R$</span>
+                                <input type="text" name="ValorMensalContrato" class="input input-bordered w-full pl-12 money-mask" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>" placeholder="0.00">
+                            </div>
                         </div>
-                        <div class="form-control">
+                        <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Nº Parcelas</span></label>
                             <input type="number" name="NumeroParcelas" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroParcelas'] ?? ''); ?>" placeholder="0">
                         </div>
-                        <div class="form-control">
+                        <div class="form-control md:col-span-4">
                             <label class="label"><span class="label-text font-semibold">Valor Global (R$)</span></label>
-                            <input type="number" step="0.01" name="ValorGlobalContrato" required class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorGlobalContrato'] ?? ''); ?>" placeholder="0.00">
+                            <div class="relative">
+                                <span class="absolute left-4 top-3 text-gray-400 font-medium">R$</span>
+                                <input type="text" name="ValorGlobalContrato" required class="input input-bordered w-full pl-12 money-mask" value="<?php echo htmlspecialchars($contract['ValorGlobalContrato'] ?? ''); ?>" placeholder="0.00">
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -521,7 +538,12 @@ function preencherFormulario(mapped) {
         const inputs = document.querySelectorAll(`[name="${key}"]`);
         inputs.forEach(input => {
             if (value !== undefined && value !== null) {
-                input.value = value;
+                const mask = getMaskByElement(input);
+                if (mask) {
+                    mask.value = value.toString();
+                } else {
+                    input.value = value;
+                }
             }
         });
     }
@@ -544,6 +566,30 @@ document.getElementById('btn-confirmar-pncp').addEventListener('click', () => {
     }
 });
 
+// Inicialização de Máscaras Monetárias
+const maskOptions = {
+    mask: Number,
+    scale: 2,
+    signed: false,
+    thousandsSeparator: '.',
+    padFractionalZeros: true,
+    normalizeZeros: true,
+    radix: ',',
+    mapToRadix: ['.']
+};
+
+const masks = [];
+document.querySelectorAll('.money-mask').forEach(el => {
+    const mask = IMask(el, maskOptions);
+    // Se já tem valor vindo do banco, força a formatação
+    if (el.value) mask.typedValue = parseFloat(el.value);
+    masks.push(mask);
+});
+
+function getMaskByElement(el) {
+    return masks.find(m => m.el.input === el);
+}
+
 // Cálculo Automático de Valores
 function calculateContractValues(source) {
     const mensalInputs = document.querySelectorAll('[name="ValorMensalContrato"]');
@@ -552,27 +598,38 @@ function calculateContractValues(source) {
 
     if (!mensalInputs.length || !parcelasInputs.length || !globalInputs.length) return;
 
-    const mensal = parseFloat(mensalInputs[0].value || 0);
+    // Pega as máscaras correspondentes
+    const mMensal = getMaskByElement(mensalInputs[0]);
+    const mGlobal = getMaskByElement(globalInputs[0]);
+
+    const mensal = parseFloat(mMensal ? mMensal.unmaskedValue : (mensalInputs[0].value || 0));
     const parcelas = parseInt(parcelasInputs[0].value || 0);
-    const global = parseFloat(globalInputs[0].value || 0);
+    const global = parseFloat(mGlobal ? mGlobal.unmaskedValue : (globalInputs[0].value || 0));
 
     if (source === 'mensal' || source === 'parcelas') {
         if (mensal > 0 && parcelas > 0) {
             const novoGlobal = (mensal * parcelas).toFixed(2);
-            globalInputs.forEach(i => i.value = novoGlobal);
+            globalInputs.forEach(i => {
+                const m = getMaskByElement(i);
+                if (m) m.value = novoGlobal;
+                else i.value = novoGlobal;
+            });
         }
     } else if (source === 'global' && parcelas > 0) {
         const novoMensal = (global / parcelas).toFixed(2);
-        mensalInputs.forEach(i => i.value = novoMensal);
+        mensalInputs.forEach(i => {
+            const m = getMaskByElement(i);
+            if (m) m.value = novoMensal;
+            else i.value = novoMensal;
+        });
     }
 }
 
-document.querySelectorAll('[name="ValorMensalContrato"], [name="NumeroParcelas"]').forEach(el => {
-    el.addEventListener('input', () => calculateContractValues('mensal'));
-});
-
-document.querySelectorAll('[name="ValorGlobalContrato"]').forEach(el => {
-    el.addEventListener('input', () => calculateContractValues('global'));
+document.querySelectorAll('[name="ValorMensalContrato"], [name="NumeroParcelas"], [name="ValorGlobalContrato"]').forEach(el => {
+    el.addEventListener('input', (e) => {
+        const source = e.target.name === 'ValorGlobalContrato' ? 'global' : 'mensal';
+        calculateContractValues(source);
+    });
 });
 
 function buscarPrestador(doc) {

@@ -11,6 +11,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $action = $_POST['action'] ?? '';
 
+/**
+ * Sanitiza valores monetários vindos com máscara (ex: 1.234,56 -> 1234.56)
+ */
+function sanitizeMoney($value) {
+    if (empty($value)) return null;
+    $clean = str_replace('.', '', $value); // Remove milhar
+    $clean = str_replace(',', '.', $clean); // Troca decimal
+    return (float) preg_replace('/[^0-9.]/', '', $clean);
+}
+
 // Proteção de permissão no Backend
 if (($action === 'create' || $action === 'update') && !CONTRATOS_CONSULTOR) {
     die("Acesso negado: você não tem permissão para salvar documentos.");
@@ -41,9 +51,9 @@ try {
             'FiscalSubstituto' => $_POST['FiscalSubstituto'] ?: null,
             'EmailFiscalSubstituto' => $_POST['EmailFiscalSubstituto'] ?: null,
             'PrestadorId' => $_POST['PrestadorId'],
-            'ValorMensalContrato' => $_POST['ValorMensalContrato'] ?: null,
+            'ValorMensalContrato' => sanitizeMoney($_POST['ValorMensalContrato']),
             'NumeroParcelas' => $_POST['NumeroParcelas'] ?: null,
-            'ValorGlobalContrato' => $_POST['ValorGlobalContrato'],
+            'ValorGlobalContrato' => sanitizeMoney($_POST['ValorGlobalContrato']),
             'NProcesso' => $_POST['NProcesso'] ?: null,
             'ModalidadeId' => $_POST['ModalidadeId'] ?: null,
             'NumeroModalidade' => $_POST['NumeroModalidade'] ?: null,
