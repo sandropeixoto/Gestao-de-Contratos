@@ -91,6 +91,7 @@ $result = [
         'NProcesso' => $data['processo'] ?? $data['numeroProcesso'] ?? '',
         'SeqContrato' => $data['numeroContratoEmpenho'] ?? '',
         'AnoContrato' => $data['anoContrato'] ?? '',
+        'PncpIdContratacao' => $data['numeroControlePncpCompra'] ?? '',
     ]
 ];
 

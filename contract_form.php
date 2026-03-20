@@ -221,10 +221,6 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="form-control">
-                            <label class="label"><span class="label-text font-semibold">Id Contratação PNCP</span></label>
-                            <input type="text" name="PncpIdContratacao" id="PncpIdContratacao" class="input input-bordered w-full" value="<?php echo htmlspecialchars($contract['PncpIdContratacao'] ?? ''); ?>" placeholder="00000000000000-1-000000/0000">
-                        </div>
-                        <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">Id Contrato PNCP</span></label>
                             <div class="join w-full">
                                 <input type="text" name="PncpIdContrato" id="PncpIdContrato" class="input input-bordered join-item w-full" value="<?php echo htmlspecialchars($contract['PncpIdContrato'] ?? ''); ?>" placeholder="00000000000000-2-000000/0000">
@@ -232,6 +228,10 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                                     <i class="ph ph-magnifying-glass"></i>
                                 </button>
                             </div>
+                        </div>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Id Contratação PNCP</span></label>
+                            <input type="text" name="PncpIdContratacao" id="PncpIdContratacao" class="input input-bordered w-full" value="<?php echo htmlspecialchars($contract['PncpIdContratacao'] ?? ''); ?>" placeholder="00000000000000-1-000000/0000">
                         </div>
                     </div>
                     <div id="pncp-loading" class="hidden mt-2 text-sm text-primary flex items-center gap-2">
