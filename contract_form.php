@@ -431,7 +431,6 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
     </form>
 </div>
 
-<script>
 <!-- Modal de Divergências PNCP -->
 <input type="checkbox" id="modal-pncp-divergencias" class="modal-toggle" />
 <div class="modal">
@@ -475,7 +474,6 @@ function formatMoney(val) {
 }
 
 function checkDivergences(mapped) {
-    // ... campos ... (vou omitir para brevidade no replace mas manter no arquivo)
     const fields = {
         'Objeto': { label: 'Objeto', type: 'text' },
         'VigenciaInicio': { label: 'Início Vigência', type: 'date' },
@@ -552,6 +550,8 @@ function calculateContractValues(source) {
     const parcelasInputs = document.querySelectorAll('[name="NumeroParcelas"]');
     const globalInputs = document.querySelectorAll('[name="ValorGlobalContrato"]');
 
+    if (!mensalInputs.length || !parcelasInputs.length || !globalInputs.length) return;
+
     const mensal = parseFloat(mensalInputs[0].value || 0);
     const parcelas = parseInt(parcelasInputs[0].value || 0);
     const global = parseFloat(globalInputs[0].value || 0);
@@ -623,7 +623,8 @@ function buscarPrestador(doc) {
             console.error('Erro:', error); 
         });
 }
-    function fetchPncp(type, inputId) {
+
+function fetchPncp(type, inputId) {
         const id = document.getElementById(inputId).value;
         if (!id) {
             alert('Por favor, insira o ID do PNCP antes de consultar.');
