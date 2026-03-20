@@ -24,13 +24,16 @@ if ($action === 'upload') {
         exit;
     }
 
+    // Extensões permitidas (whitelist)
+    $allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'odt', 'ods', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt', 'csv', 'zip'];
+
     $ano = $_POST['ano_contrato'] ?? date('Y');
     $seq = $_POST['seq_contrato'] ?? '000';
-    
+
     // Caminho base: uploads/{ano}/{numero}/
     $upload_base = __DIR__ . "/uploads/$ano/$seq";
     if (!is_dir($upload_base)) {
-        mkdir($upload_base, 0777, true);
+        mkdir($upload_base, 0755, true);
     }
 
     $files = $_FILES['anexos'] ?? null;
@@ -69,8 +72,14 @@ if ($action === 'upload') {
         // Naming Convention: [nome-original-do-arquivo]+GGov+[Abrev]
         $path_info = pathinfo($original_name);
         $filename_only = $path_info['filename'];
-        $extension = $path_info['extension'];
-        
+        $extension = strtolower($path_info['extension'] ?? '');
+
+        // Validação de extensão (whitelist)
+        if (!in_array($extension, $allowed_extensions, true)) {
+            $error_messages[] = "Tipo de arquivo não permitido: ." . $extension . " (" . $original_name . ")";
+            continue;
+        }
+
         // Sanitização básica do nome do arquivo
         $filename_only = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $filename_only);
         
