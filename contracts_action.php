@@ -42,6 +42,7 @@ try {
             'EmailFiscalSubstituto' => $_POST['EmailFiscalSubstituto'] ?: null,
             'PrestadorId' => $_POST['PrestadorId'],
             'ValorMensalContrato' => $_POST['ValorMensalContrato'] ?: null,
+            'NumeroParcelas' => $_POST['NumeroParcelas'] ?: null,
             'ValorGlobalContrato' => $_POST['ValorGlobalContrato'],
             'NProcesso' => $_POST['NProcesso'] ?: null,
             'ModalidadeId' => $_POST['ModalidadeId'] ?: null,
@@ -72,6 +73,10 @@ try {
             $stmt->execute($data);
             $contrato_final_id = $pdo->lastInsertId();
             
+            if (!empty($_POST['PncpDivergenciasLog'])) {
+                logSistema('PNCP_Overwrite_Divergences', 'Contratos', $contrato_final_id, $_POST['PncpDivergenciasLog']);
+            }
+
             logSistema('Create', 'Contratos', $contrato_final_id, json_encode($data));
         } else {
             $sets = [];
@@ -83,6 +88,10 @@ try {
             $stmt = $pdo->prepare($sql);
             $stmt->execute($data);
             
+            if (!empty($_POST['PncpDivergenciasLog'])) {
+                logSistema('PNCP_Overwrite_Divergences', 'Contratos', $id, $_POST['PncpDivergencesLog']);
+            }
+
             logSistema('Update', 'Contratos', $id, json_encode($data));
         }
 

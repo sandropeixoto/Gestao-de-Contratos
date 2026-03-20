@@ -149,9 +149,13 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             <label class="label"><span class="label-text font-semibold">Diário Oficial TAC</span></label>
                             <input type="text" name="NumeroDiarioOficialContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroDiarioOficialContrato'] ?? ''); ?>">
                         </div>
-                        <div class="form-control md:col-span-2">
+                        <div class="form-control md:col-span-1">
                             <label class="label"><span class="label-text font-semibold">Valor Mensal Contrato</span></label>
                             <input type="number" step="0.01" name="ValorMensalContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>">
+                        </div>
+                        <div class="form-control md:col-span-1">
+                            <label class="label"><span class="label-text font-semibold">Nº Parcelas</span></label>
+                            <input type="number" name="NumeroParcelas" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroParcelas'] ?? ''); ?>">
                         </div>
                         <div class="form-control md:col-span-2">
                             <label class="label"><span class="label-text font-semibold">Valor Global Contrato</span></label>
@@ -301,6 +305,10 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
                             <input type="number" step="0.01" name="ValorMensalContrato" class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorMensalContrato'] ?? ''); ?>" placeholder="0.00">
                         </div>
                         <div class="form-control">
+                            <label class="label"><span class="label-text font-semibold">Nº Parcelas</span></label>
+                            <input type="number" name="NumeroParcelas" class="input input-bordered" value="<?php echo htmlspecialchars($contract['NumeroParcelas'] ?? ''); ?>" placeholder="0">
+                        </div>
+                        <div class="form-control">
                             <label class="label"><span class="label-text font-semibold">Valor Global (R$)</span></label>
                             <input type="number" step="0.01" name="ValorGlobalContrato" required class="input input-bordered" value="<?php echo htmlspecialchars($contract['ValorGlobalContrato'] ?? ''); ?>" placeholder="0.00">
                         </div>
@@ -424,6 +432,149 @@ $fontes = $pdo->query("SELECT IdFonte, NomeFonte FROM FontesRecursos ORDER BY No
 </div>
 
 <script>
+<!-- Modal de Divergências PNCP -->
+<input type="checkbox" id="modal-pncp-divergencias" class="modal-toggle" />
+<div class="modal">
+    <div class="modal-box w-11/12 max-w-3xl">
+        <h3 class="font-bold text-lg flex items-center gap-2 text-warning">
+            <i class="ph ph-warning-circle text-2xl"></i> Divergências encontradas no PNCP
+        </h3>
+        <p class="py-4">Os seguintes campos possuem valores diferentes do que já está preenchido no formulário:</p>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor Atual</th>
+                        <th>Valor no PNCP</th>
+                    </tr>
+                </thead>
+                <tbody id="divergencias-list">
+                    <!-- Preenchido via JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="modal-action">
+            <label for="modal-pncp-divergencias" class="btn btn-ghost">Cancelar</label>
+            <button id="btn-confirmar-pncp" class="btn btn-primary">Sobrescrever Tudo</button>
+        </div>
+    </div>
+</div>
+
+<!-- Campo oculto para log de divergências PNCP -->
+<input type="hidden" name="PncpDivergenciasLog" id="PncpDivergenciasLog" value="">
+
+<script>
+let lastPncpData = null;
+let currentDivergences = [];
+
+function formatMoney(val) {
+    return parseFloat(val || 0).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+}
+
+function checkDivergences(mapped) {
+    // ... campos ... (vou omitir para brevidade no replace mas manter no arquivo)
+    const fields = {
+        'Objeto': { label: 'Objeto', type: 'text' },
+        'VigenciaInicio': { label: 'Início Vigência', type: 'date' },
+        'VigenciaFim': { label: 'Fim Vigência', type: 'date' },
+        'DataAssinatura': { label: 'Data Assinatura', type: 'date' },
+        'ValorGlobalContrato': { label: 'Valor Global', type: 'money' },
+        'ValorMensalContrato': { label: 'Valor Mensal', type: 'money' },
+        'NumeroParcelas': { label: 'Nº Parcelas', type: 'number' },
+        'NProcesso': { label: 'Nº Processo', type: 'text' },
+        'SeqContrato': { label: 'Nº Contrato/Empenho', type: 'text' },
+        'AnoContrato': { label: 'Ano Contrato', type: 'text' }
+    };
+
+    const divergencias = [];
+    
+    for (const [key, config] of Object.entries(fields)) {
+        const input = document.querySelector(`[name="${key}"]`);
+        if (!input) continue;
+
+        let valAtual = input.value;
+        let valPncp = mapped[key];
+
+        // Normalização para comparação
+        if (config.type === 'money') {
+            valAtual = parseFloat(valAtual || 0).toFixed(2);
+            valPncp = parseFloat(valPncp || 0).toFixed(2);
+        }
+
+        if (valAtual && valAtual.toString().trim() !== '' && valAtual != valPncp) {
+            divergencias.push({
+                campo: key,
+                label: config.label,
+                atual: config.type === 'money' ? formatMoney(valAtual) : valAtual,
+                pncp: config.type === 'money' ? formatMoney(valPncp) : valPncp
+            });
+        }
+    }
+
+    currentDivergences = divergencias;
+    return divergencias;
+}
+
+function preencherFormulario(mapped) {
+    for (const [key, value] of Object.entries(mapped)) {
+        const inputs = document.querySelectorAll(`[name="${key}"]`);
+        inputs.forEach(input => {
+            if (value !== undefined && value !== null) {
+                input.value = value;
+            }
+        });
+    }
+
+    // Busca prestador se CNPJ disponível
+    if (mapped.FornecedorCNPJ) {
+        const prestadorInput = document.getElementById('PrestadorDoc');
+        if (prestadorInput) {
+            prestadorInput.value = mapped.FornecedorCNPJ;
+            buscarPrestador(mapped.FornecedorCNPJ);
+        }
+    }
+}
+
+document.getElementById('btn-confirmar-pncp').addEventListener('click', () => {
+    if (lastPncpData) {
+        document.getElementById('PncpDivergenciasLog').value = JSON.stringify(currentDivergences);
+        preencherFormulario(lastPncpData);
+        document.getElementById('modal-pncp-divergencias').checked = false;
+    }
+});
+
+// Cálculo Automático de Valores
+function calculateContractValues(source) {
+    const mensalInputs = document.querySelectorAll('[name="ValorMensalContrato"]');
+    const parcelasInputs = document.querySelectorAll('[name="NumeroParcelas"]');
+    const globalInputs = document.querySelectorAll('[name="ValorGlobalContrato"]');
+
+    const mensal = parseFloat(mensalInputs[0].value || 0);
+    const parcelas = parseInt(parcelasInputs[0].value || 0);
+    const global = parseFloat(globalInputs[0].value || 0);
+
+    if (source === 'mensal' || source === 'parcelas') {
+        if (mensal > 0 && parcelas > 0) {
+            const novoGlobal = (mensal * parcelas).toFixed(2);
+            globalInputs.forEach(i => i.value = novoGlobal);
+        }
+    } else if (source === 'global' && parcelas > 0) {
+        const novoMensal = (global / parcelas).toFixed(2);
+        mensalInputs.forEach(i => i.value = novoMensal);
+    }
+}
+
+document.querySelectorAll('[name="ValorMensalContrato"], [name="NumeroParcelas"]').forEach(el => {
+    el.addEventListener('input', () => calculateContractValues('mensal'));
+});
+
+document.querySelectorAll('[name="ValorGlobalContrato"]').forEach(el => {
+    el.addEventListener('input', () => calculateContractValues('global'));
+});
+
 function buscarPrestador(doc) {
     const loading = document.getElementById('doc_loading');
     const info = document.getElementById('prestador_info');
@@ -490,27 +641,30 @@ function buscarPrestador(doc) {
                     alert(data.error);
                 } else if (data.success && data.mapped) {
                     const mapped = data.mapped;
-                    let message = `Dados encontrados no PNCP!\n\n`;
-                    message += `Objeto: ${mapped.Objeto.substring(0, 100)}...\n`;
-                    message += `Valor: R$ ${parseFloat(mapped.ValorGlobalContrato).toLocaleString('pt-BR', {minimumFractionDigits: 2})}\n\n`;
-                    message += `Deseja preencher automaticamente o formulário com estes dados?`;
+                    lastPncpData = mapped;
+                    
+                    const divergencias = checkDivergences(mapped);
+                    
+                    if (divergencias.length > 0) {
+                        const list = document.getElementById('divergencias-list');
+                        list.innerHTML = '';
+                        divergencias.forEach(div => {
+                            list.innerHTML += `<tr>
+                                <td class="font-bold">${div.label}</td>
+                                <td class="text-error">${div.atual}</td>
+                                <td class="text-success">${div.pncp}</td>
+                            </tr>`;
+                        });
+                        document.getElementById('modal-pncp-divergencias').checked = true;
+                    } else {
+                        let message = `Dados encontrados no PNCP!\n\n`;
+                        message += `Objeto: ${mapped.Objeto.substring(0, 100)}...\n`;
+                        message += `Valor Global: ${formatMoney(mapped.ValorGlobalContrato)}\n`;
+                        if (mapped.ValorMensalContrato > 0) message += `Valor Mensal: ${formatMoney(mapped.ValorMensalContrato)} (${mapped.NumeroParcelas} parcelas)\n`;
+                        message += `\nDeseja preencher automaticamente o formulário com estes dados?`;
 
-                    if (confirm(message)) {
-                        if (mapped.Objeto) document.querySelector('[name="Objeto"]').value = mapped.Objeto;
-                        if (mapped.DataAssinatura && document.querySelector('[name="DataAssinatura"]')) document.querySelector('[name="DataAssinatura"]').value = mapped.DataAssinatura;
-                        if (mapped.VigenciaInicio && document.querySelector('[name="VigenciaInicio"]')) document.querySelector('[name="VigenciaInicio"]').value = mapped.VigenciaInicio;
-                        if (mapped.VigenciaFim && document.querySelector('[name="VigenciaFim"]')) document.querySelector('[name="VigenciaFim"]').value = mapped.VigenciaFim;
-                        if (mapped.ValorGlobalContrato && document.querySelector('[name="ValorGlobalContrato"]')) document.querySelector('[name="ValorGlobalContrato"]').value = mapped.ValorGlobalContrato;
-                        if (mapped.NProcesso && document.querySelector('[name="NProcesso"]')) document.querySelector('[name="NProcesso"]').value = mapped.NProcesso;
-                        
-                        // Opcional: Busca o prestador se CNPJ estiver disponível e houver lógica para isso
-                        if (mapped.FornecedorCNPJ) {
-                            const prestadorInput = document.getElementById('PrestadorDoc');
-                            if (prestadorInput) {
-                                prestadorInput.value = mapped.FornecedorCNPJ;
-                                // Dispara a busca que já existe no sistema
-                                buscarPrestador(mapped.FornecedorCNPJ);
-                            }
+                        if (confirm(message)) {
+                            preencherFormulario(mapped);
                         }
                     }
                 }

@@ -84,9 +84,13 @@ $result = [
         'VigenciaFim' => isset($data['dataVigenciaFim']) ? substr($data['dataVigenciaFim'], 0, 10) : '',
         'DataAssinatura' => isset($data['dataAssinatura']) ? substr($data['dataAssinatura'], 0, 10) : '',
         'ValorGlobalContrato' => $data['valorGlobal'] ?? $data['valorInicial'] ?? $data['valorTotalEstimado'] ?? 0,
+        'ValorMensalContrato' => $data['valorParcela'] ?? 0,
+        'NumeroParcelas' => $data['numeroParcelas'] ?? 0,
         'FornecedorCNPJ' => $data['niFornecedor'] ?? '',
         'FornecedorNome' => $data['nomeFornecedor'] ?? $data['razaoSocialNomeFornecedor'] ?? $data['nomeRazaoSocialFornecedor'] ?? '',
         'NProcesso' => $data['processo'] ?? $data['numeroProcesso'] ?? '',
+        'SeqContrato' => $data['numeroContratoEmpenho'] ?? '',
+        'AnoContrato' => $data['anoContrato'] ?? '',
     ]
 ];
 
