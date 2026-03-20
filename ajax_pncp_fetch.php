@@ -31,30 +31,56 @@ if (!$parsed) {
 }
 
 function callPncpApi($url) {
-    // Usar o binário curl do sistema para máxima fidelidade ao shell
     $ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-    $cmd = "curl -s -L -A \"$ua\" \"$url\"";
-    $response = shell_exec($cmd);
-    
-    return ['code' => 200, 'data' => json_decode($response, true)];
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_USERAGENT      => $ua,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_SSL_VERIFYPEER => true,
+    ]);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+
+    if ($curl_error || $response === false) {
+        return ['code' => 0, 'data' => null, 'error' => $curl_error ?: 'Falha na requisição'];
+    }
+
+    return ['code' => $http_code, 'data' => json_decode($response, true)];
 }
 
 $data = null;
 
 if ($type === 'compra') {
     $res = callPncpApi("https://pncp.gov.br/api/consulta/v1/orgaos/{$parsed['cnpj']}/compras/{$parsed['ano']}/" . (int)$parsed['sequencial']);
+    if ($res['code'] === 0) {
+        echo json_encode(['error' => 'Falha de conectividade com o PNCP: ' . ($res['error'] ?? 'timeout')]);
+        exit;
+    }
     if ($res['code'] === 200) {
         $data = $res['data'];
     }
 } else {
     $dataInicial = "{$parsed['ano']}0101";
     $dataFinal = "{$parsed['ano']}1231";
-    
+
     // Varredura inteligente
     for ($page = 1; $page <= 5; $page++) {
         $listUrl = "https://pncp.gov.br/api/consulta/v1/contratos?dataInicial={$dataInicial}&dataFinal={$dataFinal}&cnpjOrgao={$parsed['cnpj']}&pagina={$page}&tamanhoPagina=100";
         $resList = callPncpApi($listUrl);
-        
+
+        if ($resList['code'] === 0) {
+            echo json_encode(['error' => 'Falha de conectividade com o PNCP: ' . ($resList['error'] ?? 'timeout')]);
+            exit;
+        }
+
         if ($resList['code'] === 200 && isset($resList['data']['data'])) {
             foreach ($resList['data']['data'] as $contract) {
                 // Comparação rigorosa sem espaços
@@ -71,7 +97,7 @@ if ($type === 'compra') {
 }
 
 if (!$data) {
-    echo json_encode(['error' => "Contrato não localizado no PNCP. Verifique se o ID está correto ou se foi publicado recentemente."]);
+    echo json_encode(['error' => 'Contrato não localizado no PNCP. Verifique se o ID está correto ou se foi publicado recentemente.']);
     exit;
 }
 
