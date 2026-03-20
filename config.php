@@ -3,6 +3,24 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// --- Carrega variáveis do .env (sem dependência de biblioteca) ---
+$env_file = __DIR__ . '/.env';
+if (file_exists($env_file)) {
+    $lines = file($env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (str_starts_with(trim($line), '#') || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+        if (!array_key_exists($key, $_ENV) && !array_key_exists($key, $_SERVER)) {
+            putenv("$key=$value");
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
 // --- CENTRALIZAÇÃO DE SESSÃO GESTORGOV (MODULO) ---
 $session_lifetime = 86400; // 24 horas
 ini_set('session.gc_maxlifetime', $session_lifetime);
@@ -22,14 +40,18 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // app-contratos/config.php
 
-$host = "192.185.214.25"; // "srv24.prodns.com.br";
-$user = "eventoss_contratos";
-$pass = "Senh@2025";
-$db = "eventoss_contratos";
+$host = getenv('DB_HOST') ?: '127.0.0.1';
+$user = getenv('DB_USER') ?: '';
+$pass = getenv('DB_PASS') ?: '';
+$db   = getenv('DB_NAME') ?: '';
 
 // Chave Secreta para integração via SSO (Deve ser a mesma do Portal)
 if (!defined('SSO_SECRET_KEY')) {
-    define('SSO_SECRET_KEY', 'GestorGov_Secure_Integration_Token_2026!');
+    $sso_key = getenv('SSO_SECRET_KEY');
+    if (!$sso_key) {
+        die('SSO_SECRET_KEY não configurada. Verifique o arquivo .env.');
+    }
+    define('SSO_SECRET_KEY', $sso_key);
 }
 
 try {
