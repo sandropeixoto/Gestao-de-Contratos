@@ -206,6 +206,10 @@ try {
                                 <span class="badge <?php echo $badge_class; ?> font-medium">
                                     <?php echo $vencimento->format('d/m/Y'); ?>
                                 </span>
+
+                                <?php if (!empty($c['PncpIdContrato'])): ?>
+                                    <div class="mt-1"><span class="badge badge-ghost badge-outline badge-xs text-[9px] uppercase font-bold opacity-60">PNCP</span></div>
+                                <?php endif; ?>
                             </td>
                             <td class="text-right font-semibold">
                                 R$ <?php echo number_format($c['ValorGlobalContrato'], 2, ',', '.'); ?>

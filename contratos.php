@@ -254,6 +254,10 @@ try {
                                 } else {
                                     echo '<span class="badge badge-success badge-sm text-white">Vigente</span>';
                                 }
+
+                                if (!empty($c['PncpIdContrato'])) {
+                                    echo '<div class="mt-1"><span class="badge badge-ghost badge-outline badge-xs text-[9px] uppercase font-bold opacity-60">PNCP</span></div>';
+                                }
                             ?>
                         </td>
                         <td class="text-right font-semibold">
